@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Ticket, Timer } from 'lucide-react';
-import { gun, queueRef } from '../lib/gun';
+import { user } from '../lib/gun';
 
 interface QueueState {
   currentNumber: number;
@@ -14,8 +14,8 @@ export default function TicketQueue() {
   });
 
   useEffect(() => {
-    // Subscribe to queue updates
-    queueRef.on((data) => {
+    // Subscribe to authenticated queue updates
+    user.get('ticketQueue').on((data) => {
       if (data && data.currentNumber) {
         setState(prev => ({
           ...prev,
@@ -25,9 +25,10 @@ export default function TicketQueue() {
     });
 
     // Initialize queue if it doesn't exist
-    queueRef.once((data) => {
+    user.get('ticketQueue').once((data) => {
       if (!data || !data.currentNumber) {
-        queueRef.put({ currentNumber: 1 });
+        // Save initial data with authentication
+        user.get('ticketQueue').put({ currentNumber: 1 });
       }
     });
   }, []);
@@ -35,7 +36,8 @@ export default function TicketQueue() {
   const takeNumber = () => {
     const numberToTake = state.currentNumber;
     setState(prev => ({ ...prev, myNumber: numberToTake }));
-    queueRef.put({ currentNumber: numberToTake + 1 });
+    // Save data with authentication
+    user.get('ticketQueue').put({ currentNumber: numberToTake + 1 });
   };
 
   const relinquishNumber = () => {

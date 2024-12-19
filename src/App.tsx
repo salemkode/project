@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import TicketQueue from './components/TicketQueue';
+import Auth from './components/Auth';
 
 function App() {
-  return <TicketQueue />;
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  return isAuthenticated ? (
+    <TicketQueue />
+  ) : (
+    <Auth onAuth={setIsAuthenticated} />
+  );
 }
 
 export default App;
