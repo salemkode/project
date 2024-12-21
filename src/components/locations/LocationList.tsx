@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { locations, user } from '../../services/gun';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, QrCode } from 'lucide-react';
 import { Location } from '../../types/gun';
 import Button from '../shared/Button';
 import Card from '../shared/Card';
+import QRCodeModal from './QRCodeModal';
 
 export default function LocationList() {
   const [locationsList, setLocationsList] = useState<Location[]>([]);
   const [displayName, setDisplayName] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
 
   useEffect(() => {
     // Subscribe to locations
@@ -58,6 +61,12 @@ export default function LocationList() {
     if (newDisplayName.trim()) {
       await user.get('profile').get('name').put(newDisplayName.trim());
     }
+  };
+
+  const handleShowQRCode = (e: React.MouseEvent, location: Location) => {
+    e.preventDefault(); // Prevent navigation
+    setSelectedLocation(location);
+    setIsQRModalOpen(true);
   };
 
   return (
@@ -111,17 +120,38 @@ export default function LocationList() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {locationsList.map((location) => (
-            <Link key={location.id} to={`/location/${location.id}`}>
-              <Card className="h-full hover:shadow-md transition-shadow">
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">{location.name}</h3>
-                  <p className="text-gray-600">Current number: {location.currentNumber || 1}</p>
-                </div>
-              </Card>
-            </Link>
+            <div key={location.id} className="relative">
+              <Link to={`/location/${location.id}`}>
+                <Card className="h-full hover:shadow-md transition-shadow">
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">{location.name}</h3>
+                    <p className="text-gray-600">Current number: {location.currentNumber || 1}</p>
+                  </div>
+                </Card>
+              </Link>
+              <button
+                onClick={(e) => handleShowQRCode(e, location)}
+                className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors"
+                title="Show QR Code"
+              >
+                <QrCode className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
           ))}
         </div>
       </div>
+
+      {selectedLocation && (
+        <QRCodeModal
+          locationId={selectedLocation.id}
+          locationName={selectedLocation.name}
+          isOpen={isQRModalOpen}
+          onClose={() => {
+            setIsQRModalOpen(false);
+            setSelectedLocation(null);
+          }}
+        />
+      )}
     </div>
   );
 } 
