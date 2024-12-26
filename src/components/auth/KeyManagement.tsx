@@ -10,7 +10,7 @@ interface KeyManagementProps {
 
 export default function KeyManagement({ onImportKeys, onGenerateNewKeys }: KeyManagementProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 p-4">
+    <div className="min-h-screen p-4">
       <div className="max-w-md mx-auto space-y-4">
         <Card title="Key Management" icon={Key}>
           <div className="space-y-4">
