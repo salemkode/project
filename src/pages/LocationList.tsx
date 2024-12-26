@@ -1,54 +1,29 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { locations, user } from '../../services/gun';
-import { Plus, Settings, QrCode } from 'lucide-react';
-import { Location } from '../../types/gun';
-import Button from '../shared/Button';
-import Card from '../shared/Card';
-import QRCodeModal from './QRCodeModal';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { user, updateDisplayName } from "../services/gun";
+import { Plus, Settings, QrCode, User } from "lucide-react";
+import { Location } from "../types/gun";
+import Card from "../components/shared/Card";
+import QRCodeModal from "./QRCodeModal";
+import { useLocationList } from "../hooks/gun.hook";
 
 export default function LocationList() {
-  const [locationsList, setLocationsList] = useState<Location[]>([]);
-  const [displayName, setDisplayName] = useState('');
-  const [newDisplayName, setNewDisplayName] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [newDisplayName, setNewDisplayName] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(
+    null
+  );
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
-
-  useEffect(() => {
-    // Subscribe to locations
-    locations.getAll().map().on((data, id) => {
-      if (data) {
-        setLocationsList(prev => {
-          const filtered = prev.filter(loc => loc.id !== id);
-          return [...filtered, { ...data, id }];
-        });
-      }
-    });
-
-    // Get initial display name
-    if (user.is) {
-      user.get('profile').get('name').on((name) => {
-        setDisplayName(name as string || '');
-        setNewDisplayName(name as string || '');
-      });
-    }
-
-    return () => {
-      locations.getAll().map().off();
-      if (user.is) {
-        user.get('profile').get('name').off();
-      }
-    };
-  }, []);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const { locationIds, locationList } = useLocationList();
 
   const handleExportKeys = () => {
-    const keys = localStorage.getItem('userKeys');
+    const keys = localStorage.getItem("userKeys");
     if (keys) {
-      const blob = new Blob([keys], { type: 'application/json' });
+      const blob = new Blob([keys], { type: "application/json" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = 'take-a-number-keys.json';
+      a.download = "take-a-number-keys.json";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -58,8 +33,18 @@ export default function LocationList() {
 
   const handleUpdateDisplayName = async (e: React.FormEvent) => {
     e.preventDefault();
+    setUpdateError(null);
+
     if (newDisplayName.trim()) {
-      await user.get('profile').get('name').put(newDisplayName.trim());
+      try {
+        await updateDisplayName(newDisplayName.trim());
+      } catch (error) {
+        setUpdateError(
+          error instanceof Error
+            ? error.message
+            : "Failed to update display name"
+        );
+      }
     }
   };
 
@@ -67,6 +52,10 @@ export default function LocationList() {
     e.preventDefault(); // Prevent navigation
     setSelectedLocation(location);
     setIsQRModalOpen(true);
+  };
+
+  const isLocationManager = (location: Location) => {
+    return user.is?.pub === location.createdBy;
   };
 
   return (
@@ -77,16 +66,23 @@ export default function LocationList() {
           <div className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <Settings className="w-5 h-5 text-gray-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Account Settings</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Account Settings {locationIds.size}
+              </h2>
             </div>
             <form onSubmit={handleUpdateDisplayName} className="space-y-4">
-              <input
-                type="text"
-                value={newDisplayName}
-                onChange={(e) => setNewDisplayName(e.target.value)}
-                placeholder="Display Name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <div>
+                <input
+                  type="text"
+                  value={newDisplayName}
+                  onChange={(e) => setNewDisplayName(e.target.value)}
+                  placeholder="Display Name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {updateError && (
+                  <p className="mt-1 text-sm text-red-600">{updateError}</p>
+                )}
+              </div>
               <div className="flex gap-3">
                 <button
                   type="submit"
@@ -109,7 +105,7 @@ export default function LocationList() {
         {/* Locations Section */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Locations</h1>
-          <Link 
+          <Link
             to="/location/create"
             className="inline-flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
           >
@@ -119,13 +115,26 @@ export default function LocationList() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {locationsList.map((location) => (
+          {locationList.map((location) => (
             <div key={location.id} className="relative">
               <Link to={`/location/${location.id}`}>
                 <Card className="h-full hover:shadow-md transition-shadow">
                   <div className="p-4">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">{location.name}</h3>
-                    <p className="text-gray-600">Current number: {location.currentNumber || 1}</p>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      {location.name}
+                    </h3>
+                    <div className="space-y-2">
+                      <p className="text-gray-600">
+                        Current number: {location.currentNumber || 1}
+                      </p>
+                      <div className="flex items-center text-sm text-gray-500">
+                        <User className="w-4 h-4 mr-1" />
+                        <span>
+                          Manager: {location.creatorName}
+                          {isLocationManager(location) && " (You)"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </Card>
               </Link>
@@ -141,7 +150,7 @@ export default function LocationList() {
         </div>
       </div>
 
-      {selectedLocation && (
+      {selectedLocation && selectedLocation.id && (
         <QRCodeModal
           locationId={selectedLocation.id}
           locationName={selectedLocation.name}
@@ -154,4 +163,4 @@ export default function LocationList() {
       )}
     </div>
   );
-} 
+}

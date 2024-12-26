@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { user } from '../../services/gun';
 import Button from '../shared/Button';
+import { Link } from 'react-router-dom';
 
 interface NavbarProps {
   onLogout: () => void;
@@ -30,9 +31,9 @@ export default function Navbar({ onLogout }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <div className="flex items-center">
-            <span className="text-xl font-semibold text-gray-800">
+            <Link to="/locations" className="text-xl font-semibold text-gray-800">
               Queue System
-            </span>
+            </Link>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-gray-600">

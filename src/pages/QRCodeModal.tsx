@@ -12,7 +12,9 @@ interface QRCodeModalProps {
 export default function QRCodeModal({ locationId, locationName, isOpen, onClose }: QRCodeModalProps) {
   if (!isOpen) return null;
 
-  const qrUrl = `${window.location.origin}/location/${locationId}`;
+  // Get the base URL from Vite's import.meta.env
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  const qrUrl = `${window.location.origin}${base}/location/${locationId}`;
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
